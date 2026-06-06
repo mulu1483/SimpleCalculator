@@ -245,33 +245,28 @@ public class MainActivity extends AppCompatActivity {
     private void addPercent() {
 
         if (currentInput.isEmpty()) {
-
             return;
-
         }
 
         char last =
                 currentInput.charAt(
                         currentInput.length() - 1);
 
-        // Prevent double %
+        // If last character is an operator,
+        // replace it with %
 
-        if (last == '%') {
+        if ("+-*/%".indexOf(last) != -1) {
 
-            return;
+            currentInput =
+                    currentInput.substring(
+                            0,
+                            currentInput.length() - 1
+                    ) + "%";
 
+        } else {
+
+            currentInput += "%";
         }
-
-        // Last character must be number
-
-        if (!Character.isDigit(last)
-                && last != '.') {
-
-            return;
-
-        }
-
-        currentInput += "%";
 
         resultText.setText(currentInput);
 
