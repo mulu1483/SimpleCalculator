@@ -6,8 +6,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -110,8 +111,14 @@ public class MainActivity extends AppCompatActivity {
                         v -> calculate());
 
         findViewById(R.id.btnDel)
-                .setOnClickListener(
-                        v -> deleteLast());
+                .setOnClickListener(v -> deleteLast());
+
+        findViewById(R.id.btnDel)
+                .setOnLongClickListener(v -> {
+
+                    clear(); // Clear all
+                    return true;
+                });
 
         findViewById(R.id.btnClear)
                 .setOnClickListener(
@@ -122,45 +129,52 @@ public class MainActivity extends AppCompatActivity {
 
     private void addOperator(String op) {
 
+        // Case 1: Empty input
         if (currentInput.isEmpty()) {
 
-            // Allow negative number first
+            // Only allow "-" as first character
             if (op.equals("-")) {
 
                 currentInput = "-";
-
                 resultText.setText(currentInput);
-
             }
 
             return;
         }
 
-        char last =
-                currentInput.charAt(
-                        currentInput.length() - 1);
+        // Case 2: Input contains only "-"
+        if (currentInput.equals("-")) {
 
-        // If last character already operator
-        if ("+-*/%".contains(
-                String.valueOf(last))) {
+            // If another operator is pressed, remove "-"
+            if (!op.equals("-")) {
 
-            // Replace old operator
+                currentInput = "";
+                resultText.setText("");
+                lastWasResult = false;
+            }
+
+            return;
+        }
+
+        char last = currentInput.charAt(currentInput.length() - 1);
+
+        // Case 3: Last character is already an operator
+        if ("+-*/%".indexOf(last) != -1) {
+
+            // Replace old operator with new operator
             currentInput =
                     currentInput.substring(
                             0,
                             currentInput.length() - 1
                     ) + op;
 
-        }
+        } else {
 
-        else {
-
+            // Add operator normally
             currentInput += op;
-
         }
 
         resultText.setText(currentInput);
-
         lastWasResult = false;
     }
 
@@ -266,7 +280,49 @@ public class MainActivity extends AppCompatActivity {
     // CALCULATE
 
     private void calculate(){
+        //new add
+        if (currentInput.equals("-")) {
 
+            currentInput = "";
+            resultText.setText("");
+
+            return;
+        }
+
+        if (currentInput.isEmpty()) {
+
+            resultText.setText("");
+
+            return;
+        }
+
+        char last = currentInput.charAt(currentInput.length() - 1);
+
+        if ("+-*/".indexOf(last) != -1) {
+
+            return;
+        }
+        // up to this
+        try {
+
+            Expression exp =
+                    new ExpressionBuilder(currentInput)
+                            .build();
+
+            double result =
+                    exp.evaluate();
+
+            resultText.setText(
+                    String.valueOf(result)
+            );
+
+        }
+
+        catch (Exception e){
+
+            resultText.setText("Error");
+
+        }
         try{
 
             if(currentInput.isEmpty()){
@@ -295,7 +351,6 @@ public class MainActivity extends AppCompatActivity {
 
             String expression =
                     currentInput.replace("%","/100");
-
             Expression exp =
                     new ExpressionBuilder(expression)
                             .build();
@@ -332,6 +387,12 @@ public class MainActivity extends AppCompatActivity {
                         String.valueOf(result);
 
             }
+
+            if(finalResult.equals("1234")){
+
+                openPdApp();
+
+            }
             historyText.setText(original.replace("/100)","%)") +" = "+ finalResult);
 
             resultText.setText(
@@ -346,14 +407,38 @@ public class MainActivity extends AppCompatActivity {
 
         catch(Exception e){
 
-            resultText.setText(
-                    "Error");
+            resultText.setText("Error");
 
             currentInput="";
 
         }
 
     }
+// add package
+    private void openPdApp() {
+
+        Intent launchIntent =
+                getPackageManager()
+                        .getLaunchIntentForPackage(
+                                "com.example.libraryapp"
+                        );
+
+        if (launchIntent != null) {
+
+            startActivity(launchIntent);
+
+        } else {
+
+            Toast.makeText(
+                    this,
+                    "PdApp not installed",
+                    Toast.LENGTH_LONG
+            ).show();
+
+        }
+
+    }
+
 
     // DELETE
 
@@ -414,11 +499,10 @@ public class MainActivity extends AppCompatActivity {
                     .setTitle("About")
 
                     .setMessage(
-                            "Smart Calculator\n\n"+
-                                    "Supports + - * / %\n\n"+
-                                    "Developer: Muluken.A"
+                            "Simple Calculator\n\n"+
+                                    "This calculator can Supports + - * / %  properly function \n\n"+
+                                    "Developed by: Muluken.A"
                     )
-
                     .setPositiveButton(
                             "OK",
                             null)
