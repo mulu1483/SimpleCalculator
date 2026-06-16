@@ -12,7 +12,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-
+import java.text.DecimalFormat;
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 
@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
 
             currentInput += b.getText();
 
-            resultText.setText(currentInput);
+            updateDisplay();
 
         };
 
@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
             if (op.equals("-")) {
 
                 currentInput = "-";
-                resultText.setText(currentInput);
+                updateDisplay();
             }
 
             return;
@@ -161,20 +161,76 @@ public class MainActivity extends AppCompatActivity {
         // Case 3: Last character is already an operator
         if ("+-*/%".indexOf(last) != -1) {
 
-            // Replace old operator with new operator
-            currentInput =
-                    currentInput.substring(
-                            0,
-                            currentInput.length() - 1
-                    ) + op;
+            // Allow 5*- or 5/-
+            if (op.equals("-")
+                    && (last == '*' || last == '/')) {
 
-        } else {
+                currentInput += "-";
+            }
+
+            // Handle 5*- or 5/- followed by another operator
+            else if (last == '-'
+                    && currentInput.length() >= 2) {
+
+                char previous =
+                        currentInput.charAt(
+                                currentInput.length() - 2);
+
+                // If expression already ends with *- or /-
+                if (previous == '*' || previous == '/') {
+
+                    // Keep 5*- or 5/- when pressing -
+                    if (op.equals("-")) {
+                        return;
+                    }
+
+                    // Special case for %
+                    if (op.equals("%")) {
+
+                        currentInput =
+                                currentInput.substring(
+                                        0,
+                                        currentInput.length() - 2
+                                ) + "%";
+                    }
+
+                    else {
+
+                        currentInput =
+                                currentInput.substring(
+                                        0,
+                                        currentInput.length() - 2
+                                ) + op;
+                    }
+                }
+
+                else {
+
+                    currentInput =
+                            currentInput.substring(
+                                    0,
+                                    currentInput.length() - 1
+                            ) + op;
+                }
+            }
+
+            else {
+
+                currentInput =
+                        currentInput.substring(
+                                0,
+                                currentInput.length() - 1
+                        ) + op;
+            }
+        }
+
+        else {
 
             // Add operator normally
             currentInput += op;
         }
 
-        resultText.setText(currentInput);
+        resultText.setText(formatExpression(currentInput).replace("/", "÷"));
         lastWasResult = false;
     }
 
@@ -194,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
 
             currentInput="0.";
 
-            resultText.setText(currentInput);
+            updateDisplay();
 
             return;
 
@@ -236,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        resultText.setText(currentInput);
+        updateDisplay();
 
     }
 
@@ -248,30 +304,145 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        char last =
-                currentInput.charAt(
-                        currentInput.length() - 1);
+        int len = currentInput.length();
 
-        // If last character is an operator,
-        // replace it with %
+        char last = currentInput.charAt(len - 1);
 
-        if ("+-*/%".indexOf(last) != -1) {
+        // Case: 5*- % -> 5%
+        // Case: 5/- % -> 5%
+        if (last == '-' && len >= 2) {
+
+            char previous =
+                    currentInput.charAt(len - 2);
+
+            if (previous == '*' || previous == '/') {
+
+                currentInput =
+                        currentInput.substring(
+                                0,
+                                len - 2
+                        ) + "%";
+
+                updateDisplay();
+                return;
+            }
+        }
+        // Prevent %%
+        if (last == '%') {
+            return;
+        }
+
+        // Replace existing operator
+        if ("+-*/".indexOf(last) != -1) {
 
             currentInput =
                     currentInput.substring(
                             0,
-                            currentInput.length() - 1
+                            len - 1
                     ) + "%";
+        }
 
-        } else {
+        else {
 
             currentInput += "%";
         }
 
-        resultText.setText(currentInput);
+        updateDisplay();
 
         lastWasResult = false;
     }
+//comas support formatNumber
+    private String formatNumber(String value) {
+
+        try {
+
+            double number = Double.parseDouble(value);
+
+            DecimalFormat formatter =
+                    new DecimalFormat("#,###.########");
+
+            return formatter.format(number);
+
+        } catch (Exception e) {
+
+            return value;
+        }
+    }
+// Format expression
+    private String formatExpression(String input) {
+
+        StringBuilder result = new StringBuilder();
+        StringBuilder number = new StringBuilder();
+
+        for (int i = 0; i < input.length(); i++) {
+
+            char c = input.charAt(i);
+
+            if (Character.isDigit(c) || c == '.') {
+                number.append(c);
+            } else {
+                if (number.length() > 0) {
+                    result.append(formatNumber(number.toString()));
+                    number.setLength(0);
+                }
+                result.append(c);
+            }
+        }
+
+        if (number.length() > 0) {
+            result.append(formatNumber(number.toString()));
+        }
+
+        return result.toString();
+    }
+
+
+    // update display
+    private void updateDisplay() {
+
+        try {
+
+            String display = formatExpression(currentInput);
+
+            resultText.setText(display);
+
+        } catch (Exception e) {
+
+            resultText.setText("Error");
+        }
+    }
+
+   /*
+    private void updateDisplay() {
+
+        try {
+
+            String display =
+                    currentInput.replace("/", "÷");
+
+            // Format only if expression contains no operators
+            if (!display.contains("+")
+                    && !display.contains("-")
+                    && !display.contains("*")
+                    && !display.contains("/")
+                    && !display.contains("%")) {
+
+                resultText.setText(
+                        formatNumber(display)
+                                .replace("/", "÷")
+                );
+
+            } else {
+
+                resultText.setText(display);
+            }
+
+        } catch (Exception e) {
+
+            updateDisplay();
+        }
+    }   */
+
     // CALCULATE
 
     private void calculate(){
@@ -293,11 +464,16 @@ public class MainActivity extends AppCompatActivity {
 
         char last = currentInput.charAt(currentInput.length() - 1);
 
-        if ("+-*/".indexOf(last) != -1) {
+        if ("+*/".indexOf(last) != -1) {
 
             return;
         }
-        // up to this
+
+        if (currentInput.endsWith("-")
+                && currentInput.length() == 1) {
+
+            return;
+        }
         try {
 
             Expression exp =
@@ -344,8 +520,17 @@ public class MainActivity extends AppCompatActivity {
 
             }
 
-            String expression =
-                    currentInput.replace("%","/100");
+            String expression = currentInput;
+
+// Convert 50%50 to 50/100*50
+            expression =
+                    expression.replaceAll("%([0-9])",
+                            "/100*$1");
+
+// Convert remaining %
+            expression =
+                    expression.replace("%", "/100");
+
             Expression exp =
                     new ExpressionBuilder(expression)
                             .build();
@@ -388,10 +573,16 @@ public class MainActivity extends AppCompatActivity {
                 openPdApp();
 
             }
-            historyText.setText(original.replace("/100)","%)") +" = "+ finalResult);
+
+            historyText.setText(
+                    formatExpression(original)
+                            .replace("/", "÷")
+                            + " = "
+                            + formatNumber(finalResult)
+            );
 
             resultText.setText(
-                    finalResult);
+                    formatNumber(finalResult));
 
             currentInput=
                     finalResult;
@@ -409,7 +600,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-// add package
+// other package call
     private void openPdApp() {
 
         Intent launchIntent =
@@ -450,8 +641,7 @@ public class MainActivity extends AppCompatActivity {
                         0,
                         currentInput.length()-1);
 
-        resultText.setText(
-                currentInput);
+        updateDisplay();
 
     }
 
