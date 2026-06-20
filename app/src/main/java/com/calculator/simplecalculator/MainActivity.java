@@ -230,7 +230,11 @@ public class MainActivity extends AppCompatActivity {
             currentInput += op;
         }
 
-        resultText.setText(formatExpression(currentInput).replace("/", "÷"));
+        resultText.setText(
+                formatExpression(currentInput)
+                        .replace("/", "÷")
+                        .replace("*", "×")
+        );
         lastWasResult = false;
     }
 
@@ -299,6 +303,16 @@ public class MainActivity extends AppCompatActivity {
     // PERCENT
 
     private void addPercent() {
+
+        // Handle single "-"
+        if (currentInput.equals("-")) {
+
+            currentInput = "";
+            updateDisplay();
+            lastWasResult = false;
+
+            return;
+        }
 
         if (currentInput.isEmpty()) {
             return;
@@ -369,33 +383,84 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 // Format expression
-    private String formatExpression(String input) {
+private String formatExpression(String input) {
 
-        StringBuilder result = new StringBuilder();
-        StringBuilder number = new StringBuilder();
+    StringBuilder result = new StringBuilder();
+    StringBuilder number = new StringBuilder();
 
-        for (int i = 0; i < input.length(); i++) {
+    for (int i = 0; i < input.length(); i++) {
 
-            char c = input.charAt(i);
+        char c = input.charAt(i);
 
-            if (Character.isDigit(c) || c == '.') {
-                number.append(c);
-            } else {
-                if (number.length() > 0) {
-                    result.append(formatNumber(number.toString()));
-                    number.setLength(0);
+        if (Character.isDigit(c) || c == '.') {
+
+            number.append(c);
+
+        } else {
+
+            if (number.length() > 0) {
+
+                String num = number.toString();
+
+                // Keep trailing dot visible
+                if (num.endsWith(".")) {
+
+                    String withoutDot =
+                            num.substring(0, num.length() - 1);
+
+                    if (!withoutDot.isEmpty()) {
+
+                        result.append(
+                                formatNumber(withoutDot)
+                        );
+
+                    }
+
+                    result.append(".");
+
+                } else {
+
+                    result.append(
+                            formatNumber(num)
+                    );
                 }
-                result.append(c);
+
+                number.setLength(0);
             }
-        }
 
-        if (number.length() > 0) {
-            result.append(formatNumber(number.toString()));
+            result.append(c);
         }
-
-        return result.toString();
     }
 
+    if (number.length() > 0) {
+
+        String num = number.toString();
+
+        if (num.endsWith(".")) {
+
+            String withoutDot =
+                    num.substring(0, num.length() - 1);
+
+            if (!withoutDot.isEmpty()) {
+
+                result.append(
+                        formatNumber(withoutDot)
+                );
+
+            }
+
+            result.append(".");
+
+        } else {
+
+            result.append(
+                    formatNumber(num)
+            );
+        }
+    }
+
+    return result.toString();
+}
 
     // update display
     private void updateDisplay() {
@@ -404,44 +469,17 @@ public class MainActivity extends AppCompatActivity {
 
             String display = formatExpression(currentInput);
 
-            resultText.setText(display);
+            resultText.setText(
+                    display
+                            .replace("/", "÷")
+                            .replace("*", "×")
+            );
 
         } catch (Exception e) {
 
             resultText.setText("Error");
         }
     }
-
-   /*
-    private void updateDisplay() {
-
-        try {
-
-            String display =
-                    currentInput.replace("/", "÷");
-
-            // Format only if expression contains no operators
-            if (!display.contains("+")
-                    && !display.contains("-")
-                    && !display.contains("*")
-                    && !display.contains("/")
-                    && !display.contains("%")) {
-
-                resultText.setText(
-                        formatNumber(display)
-                                .replace("/", "÷")
-                );
-
-            } else {
-
-                resultText.setText(display);
-            }
-
-        } catch (Exception e) {
-
-            updateDisplay();
-        }
-    }   */
 
     // CALCULATE
 
@@ -577,6 +615,7 @@ public class MainActivity extends AppCompatActivity {
             historyText.setText(
                     formatExpression(original)
                             .replace("/", "÷")
+                            .replace("*", "×")
                             + " = "
                             + formatNumber(finalResult)
             );
